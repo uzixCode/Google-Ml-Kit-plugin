@@ -6,7 +6,7 @@ import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'camera_view.dart';
+import 'camera/camera_view.dart';
 import 'painters/label_detector_painter.dart';
 
 class ImageLabelView extends StatefulWidget {

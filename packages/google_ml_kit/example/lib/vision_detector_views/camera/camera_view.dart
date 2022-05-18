@@ -1,12 +1,14 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../main.dart';
+import '../../main.dart';
+import '../painters/crop_rect_painter.dart';
+import 'camera_image_converter.dart';
+import 'camera_image_cropper.dart';
 
 enum ScreenMode { liveFeed, gallery }
 
@@ -17,6 +19,7 @@ class CameraView extends StatefulWidget {
       required this.customPaint,
       this.text,
       required this.onImage,
+      this.cropRect,
       this.initialDirection = CameraLensDirection.back})
       : super(key: key);
 
@@ -25,6 +28,7 @@ class CameraView extends StatefulWidget {
   final String? text;
   final Function(InputImage inputImage) onImage;
   final CameraLensDirection initialDirection;
+  final CropRect? cropRect;
 
   @override
   _CameraViewState createState() => _CameraViewState();
@@ -40,6 +44,7 @@ class _CameraViewState extends State<CameraView> {
   double zoomLevel = 0.0, minZoomLevel = 0.0, maxZoomLevel = 0.0;
   final bool _allowPicker = true;
   bool _changingCameraLens = false;
+  InputImage? _inputImage;
 
   @override
   void initState() {
@@ -160,6 +165,10 @@ class _CameraViewState extends State<CameraView> {
             ),
           ),
           if (widget.customPaint != null) widget.customPaint!,
+          if (widget.cropRect != null &&
+              _inputImage?.inputImageData?.imageRotation != null)
+            _getCropRectOverlay(
+                widget.cropRect!, _inputImage!.inputImageData!.imageRotation),
           Positioned(
             bottom: 100,
             left: 50,
@@ -300,45 +309,26 @@ class _CameraViewState extends State<CameraView> {
     widget.onImage(inputImage);
   }
 
-  Future _processCameraImage(CameraImage image) async {
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in image.planes) {
-      allBytes.putUint8List(plane.bytes);
+  Future _processCameraImage(CameraImage cameraImage) async {
+    final cameraDescription = cameras[_cameraIndex];
+    CameraImageConverter imageConverter;
+    if (widget.cropRect != null) {
+      imageConverter = CameraImageCropper(
+        cameraImage: cameraImage,
+        cameraDescription: cameraDescription,
+        cropRect: widget.cropRect!,
+      );
+    } else {
+      imageConverter = CameraImageConverter(
+        cameraImage: cameraImage,
+        cameraDescription: cameraDescription,
+      );
     }
-    final bytes = allBytes.done().buffer.asUint8List();
-
-    final Size imageSize =
-        Size(image.width.toDouble(), image.height.toDouble());
-
-    final camera = cameras[_cameraIndex];
-    final imageRotation =
-        InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
-            InputImageRotation.rotation0deg;
-
-    final inputImageFormat =
-        InputImageFormatValue.fromRawValue(image.format.raw) ??
-            InputImageFormat.nv21;
-
-    final planeData = image.planes.map(
-      (Plane plane) {
-        return InputImagePlaneMetadata(
-          bytesPerRow: plane.bytesPerRow,
-          height: plane.height,
-          width: plane.width,
-        );
-      },
-    ).toList();
-
-    final inputImageData = InputImageData(
-      size: imageSize,
-      imageRotation: imageRotation,
-      inputImageFormat: inputImageFormat,
-      planeData: planeData,
-    );
-
-    final inputImage =
-        InputImage.fromBytes(bytes: bytes, inputImageData: inputImageData);
-
-    widget.onImage(inputImage);
+    _inputImage = imageConverter.getInputImage();
+    widget.onImage(_inputImage!);
   }
+
+  CustomPaint _getCropRectOverlay(
+          CropRect cropRect, InputImageRotation rotation) =>
+      CustomPaint(painter: CropRectPainter(cropRect, rotation));
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
-import 'camera_view.dart';
+import 'camera/camera_image_cropper.dart';
+import 'camera/camera_view.dart';
 import 'painters/barcode_detector_painter.dart';
 
 class BarcodeScannerView extends StatefulWidget {
@@ -16,6 +17,17 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
   CustomPaint? _customPaint;
   String? _text;
 
+  bool get _crop => true;
+
+  CropRect? get _cropRect => _crop
+      ? CropRect(
+          left: 0,
+          top: 0.5,
+          width: 0.5,
+          height: 0.5,
+        )
+      : null;
+
   @override
   void dispose() {
     _canProcess = false;
@@ -29,6 +41,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
       title: 'Barcode Scanner',
       customPaint: _customPaint,
       text: _text,
+      cropRect: _cropRect,
       onImage: (inputImage) {
         processImage(inputImage);
       },
@@ -48,7 +61,8 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
       final painter = BarcodeDetectorPainter(
           barcodes,
           inputImage.inputImageData!.size,
-          inputImage.inputImageData!.imageRotation);
+          inputImage.inputImageData!.imageRotation,
+          _cropRect);
       _customPaint = CustomPaint(painter: painter);
     } else {
       String text = 'Barcodes found: ${barcodes.length}\n\n';

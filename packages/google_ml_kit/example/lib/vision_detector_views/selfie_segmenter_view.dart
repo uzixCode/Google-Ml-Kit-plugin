@@ -2,7 +2,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentation.dart';
 
-import 'camera_view.dart';
+import 'camera/camera_view.dart';
 import 'painters/segmentation_painter.dart';
 
 class SelfieSegmenterView extends StatefulWidget {
