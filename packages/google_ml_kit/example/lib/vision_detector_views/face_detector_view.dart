@@ -13,9 +13,11 @@ class FaceDetectorView extends StatefulWidget {
 class _FaceDetectorViewState extends State<FaceDetectorView> {
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
-      enableContours: true,
-      enableClassification: true,
-    ),
+        enableContours: false,
+        enableClassification: true,
+        enableLandmarks: true,
+        enableTracking: true,
+        performanceMode: FaceDetectorMode.fast),
   );
   bool _canProcess = true;
   bool _isBusy = false;
